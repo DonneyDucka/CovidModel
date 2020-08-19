@@ -82,7 +82,7 @@ to make-map
     set i i - 1
   ]
 
-  print count patches with [type-of = "building" and type-of = "shop" ]
+  print count apatches with [type-of = "building" and type-of = "shop" ]
   print count patches with [type-of = "house"]
 end
 
