@@ -18,7 +18,6 @@ to setup
   ask patches [ set p-infected? false ]
   infect
   recolor
-  if variant = "network" [ make-network ]
   reset-ticks
 end
 
@@ -27,17 +26,6 @@ to make-turtles
     set infected? false
     setxy random-xcor random-ycor
   ]
-end
-
-to make-network
-  repeat connections-per-node * count turtles / 2 [
-    ;; pick a random missing edge and create it
-    ask one-of turtles [
-      create-link-with one-of other turtles with [ not link-neighbor? myself ]
-    ]
-  ]
-  layout-circle turtles max-pxcor - 1
-  repeat 20 [ do-layout ]
 end
 
 to infect
@@ -140,13 +128,13 @@ to my-experiment
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-598
-36
-1094
-533
+734
+29
+1310
+606
 -1
 -1
-14.8
+17.21212121212121
 1
 10
 1
@@ -173,7 +161,7 @@ CHOOSER
 80
 variant
 variant
-"mobile" "network" "environmental"
+"mobile" "environmental"
 0
 
 SLIDER
@@ -185,7 +173,7 @@ num-people
 num-people
 2
 500
-200.0
+300.0
 1
 1
 NIL
@@ -198,9 +186,9 @@ SLIDER
 122
 num-infected
 num-infected
-3
+1
 200
-4.0
+1.0
 1
 1
 NIL
@@ -241,7 +229,7 @@ disease-decay
 disease-decay
 0
 10
-10.0
+0.0
 1
 1
 ticks
@@ -304,7 +292,7 @@ PLOT
 339
 486
 Infection vs. Time
-Time
+Time (hrs)
 NIL
 0.0
 10.0
@@ -314,7 +302,48 @@ true
 true
 "" "if variant = \"environmental\" [\n  create-temporary-plot-pen \"patches\"\n  plotxy ticks count patches with [ p-infected? ] / count patches\n]"
 PENS
-"people" 1.0 0 -2674135 true "" "plot count turtles with [ infected? ] / count turtles"
+"people" 1.0 0 -2674135 true "" "plot count turtles "
+"infected " 1.0 0 -7500403 true "" "plot count turtles with [ infected?]"
+
+MONITOR
+91
+165
+148
+210
+Days
+ticks / 24
+2
+1
+11
+
+PLOT
+389
+246
+589
+396
+R0
+Time
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"R0" 1.0 0 -16777216 true "" "let infected count turtles with [infected?] \nplot exp (( log 2.718 infected ) / ticks )"
+
+MONITOR
+158
+166
+215
+211
+R0
+exp (( log e count turtles with [infected?] ) / ticks )
+3
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
