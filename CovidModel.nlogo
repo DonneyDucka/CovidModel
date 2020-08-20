@@ -37,7 +37,7 @@ end
 
 to make-map
 
-  let options array:from-list ["building" "shop"]
+
 
   let agents-map matrix:from-row-list [
     [0 1 1 1 1 0 1 1 1 1 1 1 1 1 0 1 1 1 1 0 1 0 1 1 1]
@@ -69,12 +69,8 @@ to make-map
       set cord matrix:get agents-map j i
 
       if cord = 0 [ask patch i j [set pcolor grey set type-of "road"]]
-      ;if cord = 2 [ask patch i j [set pcolor lime set type-of "shop"]]
-      (ifelse
-        cord = 1 and count patches with [type-of = "building" and type-of = "shop"] < num-of-buildings [ask patch i j [set pcolor lime set type-of array:item options random 2]]
-        cord = 1 and count patches with [type-of = "house"] < num-of-houses [ask patch i j [set pcolor lime set type-of "house"]]
-        cord = 1 and count patches with [pcolor = "black" ] < 210 [set pcolor lime]
-      )
+      if cord = 1 [ask patch i j [set pcolor lime set type-of "commercial"]]
+
       ;if cord = 3 [ask patch i j [set pcolor lime set type-of "building"]]
       set j j - 1
     ]
@@ -82,27 +78,40 @@ to make-map
     set i i - 1
   ]
 
-  print count patches with [type-of = "building" and type-of = "shop" ]
-  print count patches with [type-of = "house"]
 end
 
 to draw-places
-  ask patches with [type-of = "building"] [
 
+  ask n-of num-of-buildings patches with [type-of = "commercial"] [
+    set type-of "workplaces"
+  ]
+
+  ask n-of num-shops patches with [type-of = "commercial"] [
+    set type-of "shop"
+  ]
+
+  ask n-of num-of-houses patches with [type-of = "commercial"] [
+    set type-of "house"
+  ]
+
+   ask patches with [type-of = "workplaces"] [
     sprout-workplaces 1 [
-      set color blue
+    set color blue
     ]
   ]
-  ask patches with [type-of = "shop"] [
-    sprout-shops 1 [
-      set color violet
+   ask patches with [type-of = "house"] [
+     sprout-houses 1 [
+    set color brown
     ]
   ]
-  ask patches with [type-of = "house"] [
-    sprout-houses 1 [
-      set color brown
+   ask patches with [type-of = "shop"] [
+     sprout-shops 1 [
+    set color violet
     ]
   ]
+
+
+
 end
 
 to make-turtles
@@ -429,7 +438,7 @@ num-of-houses
 num-of-houses
 3
 110
-60.0
+110.0
 1
 1
 NIL
@@ -443,12 +452,60 @@ SLIDER
 num-of-buildings
 num-of-buildings
 3
-100
-38.0
+45
+22.0
 1
 1
 NIL
 HORIZONTAL
+
+MONITOR
+645
+10
+705
+55
+buildings
+count patches with [type-of = \"shop\" or type-of = \"building\"]
+3
+1
+11
+
+MONITOR
+611
+68
+703
+113
+patches
+count patches with [pcolor = lime]
+2
+1
+11
+
+SLIDER
+454
+137
+626
+170
+num-shops
+num-shops
+2
+55
+26.0
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+579
+10
+636
+55
+houses
+count patches with [type-of = \"house\"]
+1
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
