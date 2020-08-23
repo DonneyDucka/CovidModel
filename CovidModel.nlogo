@@ -11,6 +11,7 @@ people-own [
  local?
  work-time
  rest-time
+ lunch-spot
 ]
 
 patches-own [
@@ -34,8 +35,8 @@ to setup
   make-map
   draw-places
   place-people
-  ;infect
-  ;recolor
+  infect
+  recolor
   reset-ticks
 end
 
@@ -110,6 +111,7 @@ to place-people
       set workp one-of patches with [type-of = "workplaces" or type-of = "shop"]
       set work-time 8
       set rest-time 0
+      set lunch-spot "none"
     ]
   ]
 
@@ -160,7 +162,7 @@ end
 to recolor
   ask people [
     ;; infected turtles are red, others are gray
-    set color ifelse-value infected? [ red ] [ white ]
+    set color ifelse-value infected? = true [ red ] [ white ]
   ]
 end
 
@@ -170,40 +172,29 @@ end
 
 to go
   ;if all? people [ infected? ] [ stop ]
-  ;spread-infection
-  ;recolor
+  spread-infection
+  recolor
   move
   tick
 end
 
 to spread-infection
-   ask patches with [ p-infected? ] [
+   ask patches with [ p-infected? = true] [
     ;; count down to the end of the patch infection
+
     set infect-time infect-time - 1
   ]
-  ask people with [ infected? ] [
-    ifelse variant = "network" [
-      ;; in the network variant, the disease spreads through links
-      ask link-neighbors [ set infected? true ]
-    ]
-    [ ;; in other variants, the disease spreads spatially
-      ask turtles-here [ set infected? true ]
-      if variant = "environmental" [
-        ;; in the environmental variant, it spreads to patches as well
-        set p-infected? true
-        set infect-time disease-decay
-      ]
-    ]
+   ask people with [ infected? = true ] [
+
+      ask patch-here [ set p-infected? true ]
   ]
-  if variant = "environmental" [
-    ;; the turtles that are on an infected patch become infected
-    ask turtles with [ p-infected? ] [
-      set infected? true
-    ]
+
+  ask people-on patches with [p-infected? = true] [
+    let chance random infect-prob
+    if chance = 0 [
+      set infected? true ]
   ]
-  ask patches with [ p-infected? and infect-time <= 0 ] [
-    set p-infected? false
-  ]
+
 end
 
 ;;;;;;;;;;;;;;
@@ -216,11 +207,36 @@ to move
         print "working"
         face p-home
       ]
+      distance workp = 0 and work-time = 4
+       [ let store one-of patches in-radius 8 with [type-of = "shop"]
+        face store
+        ifelse distance store < 4
+        [ move-to store ] [fd 4]
+
+      ]
+
+        distance workp = 0 and work-time = 4
+       [ let store one-of patches in-radius 20 with [type-of = "shop"]
+        face store
+        ifelse distance store < 10
+        [ move-to store  set work-time "lunch"] [fd 10 set lunch-spot store set work-time "going2lunch"]
+       ]
+
+      work-time = "going2lunch"
+      [ move-to lunch-spot]
+
+        work-time = "lunch"
+      [ set work-time "back2work" ]
+
+      work-time = "back2work"
+      [  ifelse distance workp < 10 [ move-to workp set work-time 3]
+         [ face workp fd 10]
+      ]
 
     distance p-home > 1 and work-time = 0
       [ print "omw home"
         face p-home
-        fd 2
+        fd 1
       ]
    distance p-home < 1 and work-time = 0
       [ print "omw home"
@@ -235,6 +251,11 @@ to move
          print "resting"
     ]
 
+     distance p-home = 0  and rest-time > 0
+    [ set rest-time rest-time - 1
+         print "resting"
+    ]
+
 
     distance workp < 1
       [ move-to workp
@@ -242,7 +263,7 @@ to move
       ]
     distance workp > 1
       [ face workp
-        fd 2
+        fd 1
         print "omw work"
       ]
       )
@@ -342,7 +363,7 @@ MONITOR
 82
 210
 Infected
-count turtles with [ infected? ]
+count people with [ infected? = true]
 3
 1
 11
@@ -352,12 +373,12 @@ SLIDER
 127
 371
 160
-connections-per-node
-connections-per-node
-0
-5
-1.2
-0.1
+infect-prob
+infect-prob
+1
+10
+1.0
+1
 1
 NIL
 HORIZONTAL
@@ -442,10 +463,10 @@ NIL
 1.0
 true
 true
-"" "if variant = \"environmental\" [\n  create-temporary-plot-pen \"patches\"\n  plotxy ticks count patches with [ p-infected? ] / count patches\n]"
+"" ""
 PENS
-"people" 1.0 0 -2674135 true "" "plot count turtles "
-"infected " 1.0 0 -7500403 true "" "plot count turtles with [ infected?]"
+"people" 1.0 0 -2674135 true "" "plot per-household * num-of-houses "
+"infected " 1.0 0 -7500403 true "" "plot count people with [ infected? = true]"
 
 MONITOR
 91
@@ -496,7 +517,7 @@ num-of-houses
 num-of-houses
 3
 500
-231.0
+500.0
 1
 1
 NIL
@@ -511,7 +532,7 @@ num-of-buildings
 num-of-buildings
 3
 170
-49.0
+170.0
 1
 1
 NIL
@@ -548,7 +569,7 @@ num-shops
 num-shops
 2
 170
-69.0
+170.0
 1
 1
 NIL
