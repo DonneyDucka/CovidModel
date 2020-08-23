@@ -8,6 +8,9 @@ people-own [
  infected?     ;; has the person been infected with the disease?
  workp
  p-home
+ local?
+ work-time
+ rest-time
 ]
 
 patches-own [
@@ -30,6 +33,7 @@ to setup
   ;make-turtles
   make-map
   draw-places
+  place-people
   ;infect
   ;recolor
   reset-ticks
@@ -37,29 +41,44 @@ end
 
 to make-map
 
-
-
   let agents-map matrix:from-row-list [
-    [0 1 1 1 1 0 1 1 1 1 1 1 1 1 0 1 1 1 1 0 1 0 1 1 1]
-    [0 0 0 0 0 0 0 0 1 0 0 0 1 1 0 1 1 0 0 0 0 0 0 0 0]
-    [0 1 1 0 1 1 1 0 0 0 1 0 0 0 0 0 0 0 1 1 1 0 1 1 1]
-    [0 0 0 0 1 0 0 0 1 0 1 0 1 1 1 0 1 0 1 1 0 0 0 0 1]
-    [0 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 1 1 0 1]
-    [0 0 0 1 1 0 1 1 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 0 0]
-    [1 1 0 0 0 0 0 0 1 0 0 1 0 1 1 0 0 1 0 1 0 0 0 1 1]
-    [1 1 0 1 1 1 1 0 0 0 1 1 0 1 1 0 1 1 0 1 0 1 0 1 1]
-    [1 1 0 0 0 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 0 0]
-    [1 1 0 1 1 0 0 0 1 0 1 1 0 1 1 1 0 1 0 1 0 0 0 1 1]
-    [1 1 0 1 1 0 1 0 0 0 1 1 0 1 1 1 0 1 0 0 0 1 0 1 1]
-    [0 0 0 1 1 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 1 1]
-    [1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 1 1]
-    [1 1 0 1 0 0 0 0 0 1 0 1 0 1 0 0 0 1 0 0 0 1 0 1 1]
-    [1 1 0 1 1 0 1 0 1 1 0 1 0 1 1 1 0 1 0 1 0 1 0 1 1]
-    [1 1 0 0 0 0 1 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 1]
-    [1 1 1 1 1 1 1 0 1 1 0 1 0 1 1 1 0 0 0 0 0 1 1 0 1]
+    [0 1 1 1 1 0 1 1 1 1 1 1 1 1 0 1 1 1 1 0 1 0 1 1 1 0 1 1 1 1 0 1 1 1 1 1 1 1 1 0 1 1 1 1 0 1 0 1 1 1]
+    [0 0 0 0 0 0 0 0 1 0 0 0 1 1 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 1 0 1 1 0 0 0 0 0 0 0 0]
+    [0 1 1 0 1 1 1 0 0 0 1 0 0 0 0 0 0 0 1 1 1 0 1 1 1 0 1 1 0 1 1 1 0 0 0 1 0 0 0 0 0 0 0 1 1 1 0 1 1 1]
+    [0 0 0 0 1 0 0 0 1 0 1 0 1 1 1 0 1 0 1 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0 1 0 1 1 1 0 1 0 1 1 0 0 0 0 1]
+    [0 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 1 1 0 1 0 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 1 1 0 1]
+    [0 0 0 1 1 0 1 1 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 0 0 0 0 0 1 1 0 1 1 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 0 0]
+    [1 1 0 0 0 0 0 0 1 0 0 1 0 1 1 0 0 1 0 1 0 0 0 1 1 1 1 0 0 0 0 0 0 1 0 0 1 0 1 1 0 0 1 0 1 0 0 0 1 1]
+    [1 1 0 1 1 1 1 0 0 0 1 1 0 1 1 0 1 1 0 1 0 1 0 1 1 1 1 0 1 1 1 1 0 0 0 1 1 0 1 1 0 1 1 0 1 0 1 0 1 1]
+    [1 1 0 0 0 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 0 0 1 1 0 0 0 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 0 0]
+    [1 1 0 1 1 0 0 0 1 0 1 1 0 1 1 1 0 1 0 1 0 0 0 1 1 1 1 0 1 1 0 0 0 1 0 1 1 0 1 1 1 0 1 0 1 0 0 0 1 1]
+    [1 1 0 1 1 0 1 0 0 0 1 1 0 1 1 1 0 1 0 0 0 1 0 1 1 1 1 0 1 1 0 1 0 0 0 1 1 0 1 1 1 0 1 0 0 0 1 0 1 1]
+    [0 0 0 1 1 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 1 1 0 0 0 1 1 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 1 1]
+    [1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 1 1]
+    [1 1 0 1 0 0 0 0 0 1 0 1 0 1 0 0 0 1 0 0 0 1 0 1 1 1 1 0 1 0 0 0 0 0 1 0 1 0 1 0 0 0 1 0 0 0 1 0 1 1]
+    [1 1 0 1 1 0 1 0 1 1 0 1 0 1 1 1 0 1 0 1 0 1 0 1 1 1 1 0 1 1 0 1 0 1 1 0 1 0 1 1 1 0 1 0 1 0 1 0 1 1]
+    [1 1 0 0 0 0 1 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 1 1 1 0 0 0 0 1 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 1]
+    [1 1 1 1 1 0 1 0 1 1 0 1 0 1 1 1 0 0 0 0 0 1 1 0 1 1 1 1 1 1 1 1 0 1 1 0 1 0 1 0 1 0 0 0 0 0 1 1 0 1]
+    [0 1 1 1 1 0 1 1 1 1 1 1 1 1 0 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 0 1 1 1 1 0 1 0 1 1 1]
+    [0 0 0 0 0 0 0 0 1 0 0 0 1 1 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 1 0 1 1 0 0 0 0 0 0 0 0]
+    [0 1 1 0 1 1 1 0 0 0 1 0 0 0 0 0 0 0 1 1 1 0 1 1 1 0 1 1 0 1 1 1 0 0 0 1 0 0 0 0 0 0 0 1 1 1 0 1 1 1]
+    [0 0 0 0 1 0 0 0 1 0 1 0 1 1 1 0 1 0 1 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0 1 0 1 1 1 0 1 0 1 1 0 0 0 0 1]
+    [0 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 1 1 0 1 0 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 1 1 0 1]
+    [0 0 0 1 1 0 1 1 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 0 0 0 0 0 1 1 0 1 1 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 0 0]
+    [1 1 0 0 0 0 0 0 1 0 0 1 0 1 1 0 0 1 0 1 0 0 0 1 1 1 1 0 0 0 0 0 0 1 0 0 1 0 1 1 0 0 1 0 1 0 0 0 1 1]
+    [1 1 0 1 1 1 1 0 0 0 1 1 0 1 1 0 1 1 0 1 0 1 0 1 1 1 1 0 1 1 1 1 0 0 0 1 1 0 1 1 0 1 1 0 1 0 1 0 1 1]
+    [1 1 0 0 0 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 0 0 1 1 0 0 0 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 0 0]
+    [1 1 0 1 1 0 0 0 1 0 1 1 0 1 1 1 0 1 0 1 0 0 0 1 1 1 1 0 1 1 0 0 0 1 0 1 1 0 1 1 1 0 1 0 1 0 0 0 1 1]
+    [1 1 0 1 1 0 1 0 0 0 1 1 0 1 1 1 0 1 0 0 0 1 0 1 1 1 1 0 1 1 0 1 0 0 0 1 1 0 1 1 1 0 1 0 0 0 1 0 1 1]
+    [0 0 0 1 1 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 1 1 0 0 0 1 1 0 1 0 1 0 1 1 0 0 0 0 0 1 0 1 0 1 0 1 1]
+    [1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 1 0 1 1]
+    [1 1 0 1 0 0 0 0 0 1 0 1 0 1 0 0 0 1 0 0 0 1 0 1 1 1 1 0 1 0 0 0 0 0 1 0 1 0 1 0 0 0 1 0 0 0 1 0 1 1]
+    [1 1 0 1 1 0 1 0 1 1 0 1 0 1 1 1 0 1 0 1 0 1 0 1 1 1 1 0 1 1 0 1 0 1 1 0 1 0 1 1 1 0 1 0 1 0 1 0 1 1]
+    [1 1 0 0 0 0 1 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 1 1 1 0 0 0 0 1 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 0 0 1]
+    [1 1 1 1 1 1 1 0 1 1 0 1 0 1 1 1 0 0 0 0 0 1 1 0 1 1 1 1 1 1 1 1 0 1 1 0 1 0 1 1 1 0 0 0 0 0 1 1 0 1]
   ]
-  let i 24
-  let j 16
+  let i 49
+  let j 33
   let counter 0
   let cord matrix:get agents-map j i
 
@@ -74,8 +93,24 @@ to make-map
       ;if cord = 3 [ask patch i j [set pcolor lime set type-of "building"]]
       set j j - 1
     ]
-    set j 16
+    set j 33
     set i i - 1
+  ]
+
+end
+
+to place-people
+
+  ask n-of num-of-houses patches with [type-of = "house"] [
+    sprout-people per-household [
+      set color white
+      set size 0.5
+      set p-home patch-here
+      set local? true
+      set workp one-of patches with [type-of = "workplaces" or type-of = "shop"]
+      set work-time 8
+      set rest-time 0
+    ]
   ]
 
 end
@@ -114,13 +149,6 @@ to draw-places
 
 end
 
-to make-turtles
-  create-people num-people [
-    set infected? false
-    setxy random-xcor random-ycor
-    set size 0.2
-  ]
-end
 
 to infect
   ask n-of num-infected people [
@@ -183,14 +211,44 @@ end
 ;;;;;;;;;;;;;;
 to move
     ask people [
-      if distance workp = 0
-      [ move-to p-home
+      (ifelse distance workp = 0 and work-time > 0
+      [ set work-time work-time - 1
+        print "working"
+        face p-home
       ]
 
-    ifelse distance workp < 1
-      [ move-to workp ]
-      [ fd 1 ]
+    distance p-home > 1 and work-time = 0
+      [ print "omw home"
+        face p-home
+        fd 2
+      ]
+   distance p-home < 1 and work-time = 0
+      [ print "omw home"
+        move-to p-home
+        set rest-time 16
+        set work-time 8
+      ]
+
+
+    distance p-home = 0  and rest-time > 0
+    [ set rest-time rest-time - 1
+         print "resting"
+    ]
+
+
+    distance workp < 1
+      [ move-to workp
+        print "omw work"
+      ]
+    distance workp > 1
+      [ face workp
+        fd 2
+        print "omw work"
+      ]
+      )
   ]
+
+
 end
 
 to do-layout
@@ -204,7 +262,7 @@ end
 ;; would use the BehaviorSpace tool instead.
 to my-experiment
   repeat 10 [
-    set num-people 50
+
     setup
     while [ not all? turtles [ infected? ] ] [ go ]
     print ticks
@@ -212,13 +270,13 @@ to my-experiment
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-714
-10
-1650
-650
+722
+34
+1765
+747
 -1
 -1
-37.16
+20.71
 1
 10
 1
@@ -229,9 +287,9 @@ GRAPHICS-WINDOW
 1
 1
 0
-24
+49
 0
-16
+33
 1
 1
 1
@@ -253,11 +311,11 @@ SLIDER
 90
 372
 123
-num-people
-num-people
-2
-500
-34.0
+per-household
+per-household
+1
+4
+1.0
 1
 1
 NIL
@@ -437,8 +495,8 @@ SLIDER
 num-of-houses
 num-of-houses
 3
-110
-110.0
+500
+231.0
 1
 1
 NIL
@@ -452,8 +510,8 @@ SLIDER
 num-of-buildings
 num-of-buildings
 3
-45
-22.0
+170
+49.0
 1
 1
 NIL
@@ -489,8 +547,8 @@ SLIDER
 num-shops
 num-shops
 2
-55
-26.0
+170
+69.0
 1
 1
 NIL
@@ -504,6 +562,17 @@ MONITOR
 houses
 count patches with [type-of = \"house\"]
 1
+1
+11
+
+MONITOR
+507
+10
+564
+55
+people
+per-household * num-of-houses
+2
 1
 11
 
