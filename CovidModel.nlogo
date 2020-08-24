@@ -12,6 +12,10 @@ people-own [
  work-time
  rest-time
  lunch-spot
+ symptom-time
+ recovered?
+ incubation-time
+ time-period
 ]
 
 patches-own [
@@ -111,6 +115,7 @@ to place-people
       set workp one-of patches with [type-of = "workplaces" or type-of = "shop"]
       set work-time 8
       set rest-time 0
+      set recovered? false
       set lunch-spot "none"
     ]
   ]
@@ -156,6 +161,9 @@ to infect
   ask n-of num-infected people [
     set infected? true
     set color red
+    set symptom-time 0
+    set incubation-time ceiling random-normal 6.75 5.44 ;using the sample of 1,5,7,14 where the mean is 4.9 - 7 with a range of 1 - 14
+    set time-period incubation-time
   ]
 end
 
@@ -184,7 +192,8 @@ to spread-infection
 
     set infect-time infect-time - 1
   ]
-   ask people with [ infected? = true ] [
+
+  ask people with [ infected? = true ] [
 
       ask patch-here [ set p-infected? true ]
   ]
@@ -192,8 +201,42 @@ to spread-infection
   ask people-on patches with [p-infected? = true] [
     let chance random infect-prob
     if chance = 0 [
-      set infected? true ]
+      set incubation-time ceiling random-normal 6.75 5.44
+      ask patch-here [
+      set p-infected? true
+      set infect-time surface-duration
+      ]
+    ]
   ]
+
+  ask people with [incubation-time > 0] [
+    let chance random infect-prob
+    set incubation-time incubation-time - 1
+    if incubation-time = 0 [
+      set symptom-time 14 - time-period
+      if chance = 0 [
+        ask patch-here [
+          set p-infected? true
+          set infect-time surface-duration
+      ]
+      ]
+    ] ; 14 days is the maximum value
+  ]
+
+  ask people with [symptom-time > 0 ][
+    let chance random infect-prob / 2
+    set symptom-time symptom-time - 1
+    if symptom-time = 0 [
+      set recovered? true
+      if chance = 0 [
+        ask patch-here [
+          set p-infected? true
+          set infect-time surface-duration
+      ]
+      ]
+    ]
+  ]
+
 
 end
 
@@ -204,7 +247,6 @@ to move
     ask people [
       (ifelse distance workp = 0 and work-time > 0
       [ set work-time work-time - 1
-        print "working"
         face p-home
       ]
       distance workp = 0 and work-time = 4
@@ -233,38 +275,31 @@ to move
          [ face workp fd 10]
       ]
 
-    distance p-home > 1 and work-time = 0
-      [ print "omw home"
+    distance p-home > 8 and work-time = 0
+      [
         face p-home
-        fd 1
+        fd 8
       ]
-   distance p-home < 1 and work-time = 0
-      [ print "omw home"
+   distance p-home < 8 and work-time = 0
+      [
         move-to p-home
         set rest-time 16
         set work-time 8
       ]
-
-
     distance p-home = 0  and rest-time > 0
     [ set rest-time rest-time - 1
-         print "resting"
     ]
-
      distance p-home = 0  and rest-time > 0
     [ set rest-time rest-time - 1
-         print "resting"
     ]
 
-
-    distance workp < 1
+    distance workp < 8
       [ move-to workp
-        print "omw work"
+
       ]
-    distance workp > 1
+    distance workp > 8
       [ face workp
-        fd 1
-        print "omw work"
+        fd 8
       ]
       )
   ]
@@ -336,7 +371,7 @@ per-household
 per-household
 1
 4
-1.0
+2.0
 1
 1
 NIL
@@ -377,7 +412,7 @@ infect-prob
 infect-prob
 1
 10
-1.0
+10.0
 1
 1
 NIL
@@ -466,7 +501,7 @@ true
 "" ""
 PENS
 "people" 1.0 0 -2674135 true "" "plot per-household * num-of-houses "
-"infected " 1.0 0 -7500403 true "" "plot count people with [ infected? = true]"
+"infected " 1.0 0 -7500403 true "" "plot count people with [ infected? = true] "
 
 MONITOR
 91
@@ -495,7 +530,7 @@ true
 true
 "" ""
 PENS
-"R0" 1.0 0 -16777216 true "" "let infected count turtles with [infected?] \nplot exp (( log 2.718 infected ) / ticks )"
+"R0" 1.0 0 -16777216 true "" "let infected count people with [infected? = true] \nplot exp (( log 2.718 infected ) / ticks )"
 
 MONITOR
 158
@@ -517,7 +552,7 @@ num-of-houses
 num-of-houses
 3
 500
-500.0
+171.0
 1
 1
 NIL
@@ -596,6 +631,17 @@ per-household * num-of-houses
 2
 1
 11
+
+INPUTBOX
+27
+493
+119
+553
+surface-duration
+0.0
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
