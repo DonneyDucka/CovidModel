@@ -163,14 +163,16 @@ to infect
     set color red
     set symptom-time 0
     set incubation-time ceiling random-normal 6.75 5.44 ;using the sample of 1,5,7,14 where the mean is 4.9 - 7 with a range of 1 - 14
-    set time-period incubation-time
+    set time-period incubation-time * 24
   ]
 end
 
 to recolor
   ask people [
     ;; infected turtles are red, others are gray
-    set color ifelse-value infected? = true [ red ] [ white ]
+    if incubation-time > 0 [set color pink]
+    if symptom-time > 0 [set color orange]
+    if recovered? = true [set color green]
   ]
 end
 
@@ -193,10 +195,6 @@ to spread-infection
     set infect-time infect-time - 1
   ]
 
-  ask people with [ infected? = true ] [
-
-      ask patch-here [ set p-infected? true ]
-  ]
 
   ask people-on patches with [p-infected? = true] [
     let chance random infect-prob
@@ -213,7 +211,7 @@ to spread-infection
     let chance random infect-prob
     set incubation-time incubation-time - 1
     if incubation-time = 0 [
-      set symptom-time 14 - time-period
+      set symptom-time (14 - time-period) * 24
       if chance = 0 [
         ask patch-here [
           set p-infected? true
@@ -398,7 +396,7 @@ MONITOR
 82
 210
 Infected
-count people with [ infected? = true]
+count people with [ incubation-time > 0 and symptom-time > 0]
 3
 1
 11
@@ -412,7 +410,7 @@ infect-prob
 infect-prob
 1
 10
-10.0
+1.0
 1
 1
 NIL
@@ -501,7 +499,7 @@ true
 "" ""
 PENS
 "people" 1.0 0 -2674135 true "" "plot per-household * num-of-houses "
-"infected " 1.0 0 -7500403 true "" "plot count people with [ infected? = true] "
+"infected " 1.0 0 -7500403 true "" "plot count people with [ symptom-time > 0 and incubation-time > 0] "
 
 MONITOR
 91
@@ -552,7 +550,7 @@ num-of-houses
 num-of-houses
 3
 500
-171.0
+278.0
 1
 1
 NIL
@@ -567,7 +565,7 @@ num-of-buildings
 num-of-buildings
 3
 170
-170.0
+92.0
 1
 1
 NIL
@@ -604,7 +602,7 @@ num-shops
 num-shops
 2
 170
-170.0
+77.0
 1
 1
 NIL
@@ -638,10 +636,21 @@ INPUTBOX
 119
 553
 surface-duration
-0.0
+24.0
 1
 0
 Number
+
+SWITCH
+204
+49
+325
+82
+recoverable
+recoverable
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
