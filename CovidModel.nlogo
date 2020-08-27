@@ -4,6 +4,8 @@ breed [workplaces work]
 breed [people person]
 breed [shops shop]
 
+globals [r-nought]
+
 people-own [
  infected?     ;; has the person been infected with the disease?
  workp
@@ -34,7 +36,7 @@ to setup
   set-default-shape houses "house"
   set-default-shape shops "square"
   set-default-shape workplaces "square 2"
-
+  set r-nought num-infected
   ;make-turtles
   make-map
   draw-places
@@ -106,7 +108,7 @@ end
 
 to place-people
 
-  ask n-of num-of-houses patches with [type-of = "house"] [
+  ask patches with [type-of = "house"] [
     sprout-people per-household [
       set color white
       set size 0.5
@@ -171,11 +173,18 @@ to recolor
   ask people [
     ;; infected turtles are red, others are gray
     if incubation-time > 0 [set color pink]
-    if symptom-time > 0 [set color orange]
+    if symptom-time > 0 [set color yellow]
     if recovered? = true [set color green]
   ]
 end
 
+to move-randomly
+
+end
+
+to move-with-policy
+
+end
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Main Procedures ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -184,9 +193,17 @@ to go
   ;if all? people [ infected? ] [ stop ]
   spread-infection
   recolor
-  move
+  if variation = "scheduled"
+  [move]
+  if variation = "random"
+  [move-randomly]
+  if variation = "restricted-movement-policy"
+  [move-with-policy]
   tick
 end
+
+
+
 
 to spread-infection
    ask patches with [ p-infected? = true] [
@@ -195,11 +212,11 @@ to spread-infection
     set infect-time infect-time - 1
   ]
 
-
   ask people-on patches with [p-infected? = true] [
     let chance random infect-prob
-    if chance = 0 [
+    if chance = 0 and recovered? = false and incubation-time < 0 and symptom-time < 0 [
       set incubation-time ceiling random-normal 6.75 5.44
+      set time-period incubation-time * 24
       ask patch-here [
       set p-infected? true
       set infect-time surface-duration
@@ -207,7 +224,10 @@ to spread-infection
     ]
   ]
 
-  ask people with [incubation-time > 0] [
+  ask people [
+
+    (ifelse
+    incubation-time > 0 and symptom-time = 0 [
     let chance random infect-prob
     set incubation-time incubation-time - 1
     if incubation-time = 0 [
@@ -218,11 +238,10 @@ to spread-infection
           set infect-time surface-duration
       ]
       ]
+    ]
     ] ; 14 days is the maximum value
-  ]
-
-  ask people with [symptom-time > 0 ][
-    let chance random infect-prob / 2
+    symptom-time > 0  [
+     let chance random infect-prob / 2
     set symptom-time symptom-time - 1
     if symptom-time = 0 [
       set recovered? true
@@ -233,8 +252,8 @@ to spread-infection
       ]
       ]
     ]
+    ])
   ]
-
 
 end
 
@@ -324,13 +343,13 @@ to my-experiment
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-722
-34
-1765
-747
+720
+13
+1681
+670
 -1
 -1
-20.71
+19.08
 1
 10
 1
@@ -353,11 +372,11 @@ ticks
 CHOOSER
 22
 35
-160
+222
 80
-variant
-variant
-"mobile" "environmental"
+variation
+variation
+"scheduled" "random" "restricted-movement-policy"
 0
 
 SLIDER
@@ -369,7 +388,7 @@ per-household
 per-household
 1
 4
-2.0
+3.0
 1
 1
 NIL
@@ -384,7 +403,7 @@ num-infected
 num-infected
 1
 200
-1.0
+42.0
 1
 1
 NIL
@@ -396,7 +415,7 @@ MONITOR
 82
 210
 Infected
-count people with [ incubation-time > 0 and symptom-time > 0]
+count people with [ incubation-time > 0 or symptom-time > 0]
 3
 1
 11
@@ -410,7 +429,7 @@ infect-prob
 infect-prob
 1
 10
-1.0
+2.0
 1
 1
 NIL
@@ -499,7 +518,7 @@ true
 "" ""
 PENS
 "people" 1.0 0 -2674135 true "" "plot per-household * num-of-houses "
-"infected " 1.0 0 -7500403 true "" "plot count people with [ symptom-time > 0 and incubation-time > 0] "
+"infected " 1.0 0 -7500403 true "" "plot count people with [symptom-time > 0 or incubation-time > 0] "
 
 MONITOR
 91
@@ -528,7 +547,7 @@ true
 true
 "" ""
 PENS
-"R0" 1.0 0 -16777216 true "" "let infected count people with [infected? = true] \nplot exp (( log 2.718 infected ) / ticks )"
+"R0" 1.0 0 -16777216 true "" "let current count people with [ incubation-time > 0 and symptom-time > 0] + num-infected \nif r-nought = 0 [set r-nought num-infected]\nlet time ticks / 24 \n\nprint r-nought\nprint current \n\n\nplot current / r-nought\n\nset r-nought current - r-nought\n"
 
 MONITOR
 158
@@ -550,7 +569,7 @@ num-of-houses
 num-of-houses
 3
 500
-278.0
+500.0
 1
 1
 NIL
@@ -565,7 +584,7 @@ num-of-buildings
 num-of-buildings
 3
 170
-92.0
+72.0
 1
 1
 NIL
@@ -602,7 +621,7 @@ num-shops
 num-shops
 2
 170
-77.0
+95.0
 1
 1
 NIL
@@ -642,13 +661,13 @@ surface-duration
 Number
 
 SWITCH
-204
-49
-325
-82
+239
+41
+360
+74
 recoverable
 recoverable
-1
+0
 1
 -1000
 
