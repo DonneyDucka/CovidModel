@@ -4,7 +4,10 @@ breed [workplaces work]
 breed [people person]
 breed [shops shop]
 
-globals [r-nought]
+globals [
+  r-nought
+ contact-rate
+]
 
 people-own [
  infected?     ;; has the person been infected with the disease?
@@ -117,6 +120,7 @@ to place-people
       set workp one-of patches with [type-of = "workplaces" or type-of = "shop"]
       set work-time 8
       set rest-time 0
+      set infected? false
       set recovered? false
       set lunch-spot "none"
     ]
@@ -161,10 +165,11 @@ end
 
 to infect
   ask n-of num-infected people [
-    set infected? true
-    set color red
+    set color blue
     set symptom-time 0
-    set incubation-time ceiling random-normal 6.75 5.44 ;using the sample of 1,5,7,14 where the mean is 4.9 - 7 with a range of 1 - 14
+    set infected? true
+    let distribution floor random-normal 7 2
+    set incubation-time (distribution) ;using the sample of 1,5,7,14 where the mean is 4.9 - 7 with a range of 1 - 14
     set time-period incubation-time * 24
   ]
 end
@@ -199,6 +204,17 @@ to go
   [move-randomly]
   if variation = "restricted-movement-policy"
   [move-with-policy]
+
+  let contact-number 0
+
+  ask people with [infected? = true]
+  [
+    set contact-number contact-number + count people in-radius 1 with [infected? = false and recovered? = false]
+
+  ]
+  set contact-rate contact-number / count people with [infected? = true]
+
+
   tick
 end
 
@@ -214,9 +230,11 @@ to spread-infection
 
   ask people-on patches with [p-infected? = true] [
     let chance random infect-prob
-    if chance = 0 and recovered? = false and incubation-time < 0 and symptom-time < 0 [
-      set incubation-time ceiling random-normal 6.75 5.44
+    if chance = 0 and recovered? = false and infected? = false [
+      let distribution ceiling random-normal 7 2
+      set incubation-time (distribution)
       set time-period incubation-time * 24
+      set infected? true
       ask patch-here [
       set p-infected? true
       set infect-time surface-duration
@@ -227,29 +245,30 @@ to spread-infection
   ask people [
 
     (ifelse
-    incubation-time > 0 and symptom-time = 0 [
+    incubation-time > 0 [
     let chance random infect-prob
     set incubation-time incubation-time - 1
-    if incubation-time = 0 [
-      set symptom-time (14 - time-period) * 24
-      if chance = 0 [
+    if chance = 0 [
         ask patch-here [
           set p-infected? true
           set infect-time surface-duration
-      ]
+    ]
+    if incubation-time = 0 [
+      set symptom-time (14 * 24 ) - time-period
       ]
     ]
     ] ; 14 days is the maximum value
     symptom-time > 0  [
-     let chance random infect-prob / 2
+    let chance random infect-prob / 2
     set symptom-time symptom-time - 1
-    if symptom-time = 0 [
-      set recovered? true
-      if chance = 0 [
+    if chance = 0 [
         ask patch-here [
           set p-infected? true
           set infect-time surface-duration
-      ]
+    ]
+    if symptom-time = 0 [
+      set recovered? true
+      set infected? false
       ]
     ]
     ])
@@ -403,7 +422,7 @@ num-infected
 num-infected
 1
 200
-42.0
+33.0
 1
 1
 NIL
@@ -415,7 +434,7 @@ MONITOR
 82
 210
 Infected
-count people with [ incubation-time > 0 or symptom-time > 0]
+count people with [infected? = true]
 3
 1
 11
@@ -429,7 +448,7 @@ infect-prob
 infect-prob
 1
 10
-2.0
+3.0
 1
 1
 NIL
@@ -584,7 +603,7 @@ num-of-buildings
 num-of-buildings
 3
 170
-72.0
+170.0
 1
 1
 NIL
@@ -621,7 +640,7 @@ num-shops
 num-shops
 2
 170
-95.0
+170.0
 1
 1
 NIL
@@ -650,12 +669,12 @@ per-household * num-of-houses
 11
 
 INPUTBOX
-27
-493
-119
-553
+400
+11
+495
+71
 surface-duration
-24.0
+2.0
 1
 0
 Number
@@ -670,6 +689,24 @@ recoverable
 0
 1
 -1000
+
+PLOT
+353
+495
+691
+737
+average contact
+time (hrs) 
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot contact-rate"
 
 @#$#@#$#@
 ## WHAT IS IT?
