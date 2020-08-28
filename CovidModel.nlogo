@@ -7,6 +7,7 @@ breed [shops shop]
 globals [
   r-nought
  contact-rate
+ economy-value
 ]
 
 people-own [
@@ -20,6 +21,7 @@ people-own [
  symptom-time
  recovered?
  incubation-time
+ isolating?
  time-period
 ]
 
@@ -27,6 +29,7 @@ patches-own [
  p-infected?
  infect-time
  type-of
+ econ-contrib
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -189,6 +192,30 @@ end
 
 to move-with-policy
 
+  ask people
+  [
+    (ifelse
+     infected? = true
+     [(ifelse
+        distance p-home > 8
+      [ face p-home
+        fd 8
+      ]
+
+        distance p-home < 8
+      [
+        move-to p-home
+        set rest-time 16
+        set work-time 8
+      ])
+    ]
+     infected? = false
+      [move
+      ]
+    )
+  ]
+
+
 end
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Main Procedures ;;;
@@ -204,21 +231,20 @@ to go
   [move-randomly]
   if variation = "restricted-movement-policy"
   [move-with-policy]
-
-  let contact-number 0
-
-  ask people with [infected? = true]
-  [
-    set contact-number contact-number + count people in-radius 1 with [infected? = false and recovered? = false]
-
-  ]
-  set contact-rate contact-number / count people with [infected? = true]
-
-
+  calc-contact-rate
   tick
 end
 
 
+to calc-contact-rate
+ let contact-number 0
+ ask people with [infected? = true]
+  [
+    set contact-number contact-number + count people in-radius 0.5 with [infected? = false and recovered? = false]
+
+  ]
+  set contact-rate contact-number / count people with [infected? = true]
+end
 
 
 to spread-infection
@@ -283,8 +309,10 @@ to move
     ask people [
       (ifelse distance workp = 0 and work-time > 0
       [ set work-time work-time - 1
+        set economy-value economy-value + 1
         face p-home
       ]
+
       distance workp = 0 and work-time = 4
        [ let store one-of patches in-radius 8 with [type-of = "shop"]
         face store
@@ -396,7 +424,7 @@ CHOOSER
 variation
 variation
 "scheduled" "random" "restricted-movement-policy"
-0
+2
 
 SLIDER
 200
@@ -407,7 +435,7 @@ per-household
 per-household
 1
 4
-3.0
+4.0
 1
 1
 NIL
@@ -422,7 +450,7 @@ num-infected
 num-infected
 1
 200
-33.0
+21.0
 1
 1
 NIL
@@ -448,7 +476,7 @@ infect-prob
 infect-prob
 1
 10
-3.0
+2.0
 1
 1
 NIL
@@ -566,7 +594,7 @@ true
 true
 "" ""
 PENS
-"R0" 1.0 0 -16777216 true "" "let current count people with [ incubation-time > 0 and symptom-time > 0] + num-infected \nif r-nought = 0 [set r-nought num-infected]\nlet time ticks / 24 \n\nprint r-nought\nprint current \n\n\nplot current / r-nought\n\nset r-nought current - r-nought\n"
+"R0" 1.0 0 -16777216 true "" "let transmissibility 1 / infect-prob\n\nplot transmissibility * contact-rate * surface-duration\n\n\n"
 
 MONITOR
 158
@@ -674,7 +702,7 @@ INPUTBOX
 495
 71
 surface-duration
-2.0
+12.0
 1
 0
 Number
@@ -707,6 +735,35 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot contact-rate"
+
+MONITOR
+38
+524
+101
+569
+Economy
+economy-value
+17
+1
+11
+
+PLOT
+61
+617
+261
+767
+Economy 
+economy
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot economy-value"
 
 @#$#@#$#@
 ## WHAT IS IT?
