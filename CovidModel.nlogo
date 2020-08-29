@@ -23,6 +23,7 @@ people-own [
  incubation-time
  isolating?
  time-period
+ isolation-time
 ]
 
 patches-own [
@@ -190,33 +191,6 @@ to move-randomly
 
 end
 
-to move-with-policy
-
-  ask people
-  [
-    (ifelse
-     infected? = true
-     [(ifelse
-        distance p-home > 8
-      [ face p-home
-        fd 8
-      ]
-
-        distance p-home < 8
-      [
-        move-to p-home
-        set rest-time 16
-        set work-time 8
-      ])
-    ]
-     infected? = false
-      [move
-      ]
-    )
-  ]
-
-
-end
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Main Procedures ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -225,12 +199,13 @@ to go
   ;if all? people [ infected? ] [ stop ]
   spread-infection
   recolor
-  if variation = "scheduled"
-  [move]
-  if variation = "random"
+  (ifelse variation = "scheduled"
+    [ ask people [move] ]
+  variation = "random"
   [move-randomly]
-  if variation = "restricted-movement-policy"
+  variation = "restricted-movement-policy"
   [move-with-policy]
+  )
   calc-contact-rate
   tick
 end
@@ -258,8 +233,8 @@ to spread-infection
     let chance random infect-prob
     if chance = 0 and recovered? = false and infected? = false [
       let distribution ceiling random-normal 7 2
-      set incubation-time (distribution)
-      set time-period incubation-time * 24
+      set incubation-time (distribution) * 24
+      set time-period incubation-time
       set infected? true
       ask patch-here [
       set p-infected? true
@@ -272,17 +247,17 @@ to spread-infection
 
     (ifelse
     incubation-time > 0 [
-    let chance random infect-prob
+    let chance random ( infect-prob * 10)
     set incubation-time incubation-time - 1
     if chance = 0 [
         ask patch-here [
           set p-infected? true
           set infect-time surface-duration
+        ]
     ]
     if incubation-time = 0 [
       set symptom-time (14 * 24 ) - time-period
       ]
-    ]
     ] ; 14 days is the maximum value
     symptom-time > 0  [
     let chance random infect-prob / 2
@@ -306,7 +281,6 @@ end
 ;;; Layout ;;;
 ;;;;;;;;;;;;;;
 to move
-    ask people [
       (ifelse distance workp = 0 and work-time > 0
       [ set work-time work-time - 1
         set economy-value economy-value + 1
@@ -344,7 +318,7 @@ to move
         face p-home
         fd 8
       ]
-   distance p-home < 8 and work-time = 0
+   distance p-home <= 8 and work-time = 0
       [
         move-to p-home
         set rest-time 16
@@ -357,7 +331,7 @@ to move
     [ set rest-time rest-time - 1
     ]
 
-    distance workp < 8
+    distance workp <= 8
       [ move-to workp
 
       ]
@@ -366,8 +340,31 @@ to move
         fd 8
       ]
       )
+end
+
+
+to move-with-policy
+
+  ask people with [symptom-time > 0]
+  [
+    set work-time 0
+    set rest-time 7 * 24
+    (ifelse
+        distance p-home > 8
+      [ face p-home
+        fd 8
+      ]
+      distance p-home < 8
+      [
+        move-to p-home
+        set isolation-time 14 * 24
+        set symptom-time 0
+      ])
   ]
 
+  ask people with [symptom-time = 0]
+  [move
+  ]
 
 end
 
@@ -424,7 +421,7 @@ CHOOSER
 variation
 variation
 "scheduled" "random" "restricted-movement-policy"
-2
+0
 
 SLIDER
 200
@@ -435,7 +432,7 @@ per-household
 per-household
 1
 4
-4.0
+2.0
 1
 1
 NIL
@@ -476,7 +473,7 @@ infect-prob
 infect-prob
 1
 10
-2.0
+5.0
 1
 1
 NIL
@@ -499,9 +496,9 @@ HORIZONTAL
 
 BUTTON
 453
-90
+89
 516
-123
+122
 setup
 setup
 NIL
@@ -565,7 +562,8 @@ true
 "" ""
 PENS
 "people" 1.0 0 -2674135 true "" "plot per-household * num-of-houses "
-"infected " 1.0 0 -7500403 true "" "plot count people with [symptom-time > 0 or incubation-time > 0] "
+"symptomatic people " 1.0 0 -7500403 true "" "plot count people with [symptom-time > 0 ] "
+"incubation people" 1.0 0 -955883 true "" "plot count people with [incubation-time > 0]"
 
 MONITOR
 91
@@ -580,9 +578,9 @@ ticks / 24
 
 PLOT
 352
-235
+234
 690
-485
+484
 R0
 Time
 NIL
@@ -602,8 +600,8 @@ MONITOR
 215
 211
 R0
-exp (( log e count turtles with [infected?] ) / ticks )
-3
+(1 / infect-prob) * contact-rate * surface-duration
+2
 1
 11
 
@@ -624,14 +622,14 @@ HORIZONTAL
 
 SLIDER
 454
-177
+176
 626
-210
+209
 num-of-buildings
 num-of-buildings
 3
 170
-170.0
+160.0
 1
 1
 NIL
@@ -661,14 +659,14 @@ count patches with [pcolor = lime]
 
 SLIDER
 454
-137
+136
 626
-170
+169
 num-shops
 num-shops
 2
 170
-170.0
+165.0
 1
 1
 NIL
@@ -702,7 +700,7 @@ INPUTBOX
 495
 71
 surface-duration
-12.0
+7.0
 1
 0
 Number
@@ -717,24 +715,6 @@ recoverable
 0
 1
 -1000
-
-PLOT
-353
-495
-691
-737
-average contact
-time (hrs) 
-NIL
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot contact-rate"
 
 MONITOR
 38
