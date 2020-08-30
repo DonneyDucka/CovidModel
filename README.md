@@ -9,16 +9,16 @@ Once netlogo is installed, download the covidmodel file in this repo and import 
 ## Parameters and Functions
 
  default model config: 
-    initially the model should have the the config:
+    initially the model should have the the config: <br>
         
-num-of-house = 500 
-num-of-shops =  170 
-num-of-buildings = 170
-infect-prob = 5
-num-infected = 10
-variation = schedule
-per-household = 3
-surface-duration = 24
+num-of-house = 500 <br> 
+num-of-shops =  170  <br>
+num-of-buildings = 170 <br>
+infect-prob = 5 <br>
+num-infected = 10 <br>
+variation = schedule <br>
+per-household = 3 <br>
+surface-duration = 24 <br>
 
 if the model is not currently in this form or you would like to play around with the 
 parameters feel free to change the parameters
