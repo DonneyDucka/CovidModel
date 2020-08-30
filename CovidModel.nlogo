@@ -122,7 +122,8 @@ to place-people
       set p-home patch-here
       set local? true
       set workp one-of patches with [type-of = "workplaces" or type-of = "shop"]
-      set work-time 8
+      let a array:from-list [6 7 8 9 10]
+      set work-time array:item a (random 5)
       set rest-time 0
       set infected? false
       set recovered? false
@@ -200,25 +201,26 @@ to go
   spread-infection
   recolor
   (ifelse variation = "scheduled"
-    [ ask people [move] ]
+    [move-with-schedule]
   variation = "random"
   [move-randomly]
   variation = "restricted-movement-policy"
   [move-with-policy]
   )
-  calc-contact-rate
+  if( remainder ticks 24 = 0) [
+    calc-contact-rate
+  ]
   tick
 end
 
 
 to calc-contact-rate
  let contact-number 0
- ask people with [infected? = true]
+ ask people with [infected? = false ]
   [
-    set contact-number contact-number + count people in-radius 0.5 with [infected? = false and recovered? = false]
-
+    set contact-number contact-number + count people in-radius 0.5 with [infected? = true]
   ]
-  set contact-rate contact-number / count people with [infected? = true]
+  set contact-rate contact-number / count people with [infected? = false]
 end
 
 
@@ -266,12 +268,13 @@ to spread-infection
         ask patch-here [
           set p-infected? true
           set infect-time surface-duration
+        ]
     ]
     if symptom-time = 0 [
       set recovered? true
       set infected? false
       ]
-    ]
+
     ])
   ]
 
@@ -280,7 +283,7 @@ end
 ;;;;;;;;;;;;;;
 ;;; Layout ;;;
 ;;;;;;;;;;;;;;
-to move
+to move-around
       (ifelse distance workp = 0 and work-time > 0
       [ set work-time work-time - 1
         set economy-value economy-value + 1
@@ -342,28 +345,63 @@ to move
       )
 end
 
+to move-with-schedule
+
+  ask people with [symptom-time > 0 and rest-time > 0]
+  [
+    let likelihood random 3
+
+    if likelihood = 0 [
+     set rest-time rest-time + 1
+    ]
+
+  ]
+  ask people
+  [move-around
+  ]
+
+end
 
 to move-with-policy
 
-  ask people with [symptom-time > 0]
+  ask people with [symptom-time > 0 or  isolation-time > 0]
   [
     set work-time 0
     set rest-time 7 * 24
+    set infected? false
+
     (ifelse
         distance p-home > 8
       [ face p-home
         fd 8
       ]
-      distance p-home < 8
+      distance p-home <= 8 and isolation-time = 0
       [
         move-to p-home
-        set isolation-time 14 * 24
-        set symptom-time 0
-      ])
+        set isolation-time 7 * 24
+        ask patch-here [
+        set p-infected? false
+        set infect-time 0
+        ]
+      ]
+     isolation-time > 0
+      [
+        set isolation-time isolation-time - 1
+         ask patch-here [
+        set p-infected? false
+        set infect-time 0
+        ]
+        if isolation-time = 0
+        [set recovered? true
+        ]
+
+      ]
+
+    )
   ]
 
   ask people with [symptom-time = 0]
-  [move
+  [move-around
   ]
 
 end
@@ -421,7 +459,7 @@ CHOOSER
 variation
 variation
 "scheduled" "random" "restricted-movement-policy"
-0
+2
 
 SLIDER
 200
@@ -432,7 +470,7 @@ per-household
 per-household
 1
 4
-2.0
+3.0
 1
 1
 NIL
@@ -447,7 +485,7 @@ num-infected
 num-infected
 1
 200
-21.0
+7.0
 1
 1
 NIL
@@ -459,7 +497,7 @@ MONITOR
 82
 210
 Infected
-count people with [infected? = true]
+count people with [symptom-time > 0 or incubation-time > 0]
 3
 1
 11
@@ -561,9 +599,10 @@ true
 true
 "" ""
 PENS
-"people" 1.0 0 -2674135 true "" "plot per-household * num-of-houses "
-"symptomatic people " 1.0 0 -7500403 true "" "plot count people with [symptom-time > 0 ] "
-"incubation people" 1.0 0 -955883 true "" "plot count people with [incubation-time > 0]"
+"people" 1.0 0 -16777216 true "" "plot per-household * num-of-houses "
+"symptomatic people " 1.0 0 -1184463 true "" "plot count people with [symptom-time > 0 ] "
+"incubation people" 1.0 0 -3508570 true "" "plot count people with [incubation-time > 0]"
+"recovered people" 1.0 0 -13840069 true "" "plot count people with [recovered? = true]"
 
 MONITOR
 91
@@ -592,7 +631,7 @@ true
 true
 "" ""
 PENS
-"R0" 1.0 0 -16777216 true "" "let transmissibility 1 / infect-prob\n\nplot transmissibility * contact-rate * surface-duration\n\n\n"
+"R0" 1.0 0 -16777216 true "" "let transmissibility 1 / infect-prob\nif remainder ticks 24 = 0 [\nplot transmissibility * contact-rate * 14]\n\n\n"
 
 MONITOR
 158
@@ -728,10 +767,10 @@ economy-value
 11
 
 PLOT
-61
-617
-261
-767
+139
+499
+339
+649
 Economy 
 economy
 NIL
@@ -743,7 +782,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot economy-value"
+"default" 1.0 0 -16777216 true "" "if remainder ticks 24 = 0 [\nplot economy-value / ticks\n]"
 
 @#$#@#$#@
 ## WHAT IS IT?
